@@ -16,6 +16,21 @@ const app = new Clarifai.App({
   apiKey: '3436a5848a9a45b49eb5d0c4be0321a0'
 });
 
+const initialState = {
+  input: '',
+  imageUrl: '',
+  box: {},
+  route: 'signin',
+  isSignedIn: false,
+  user: {
+    email: '',
+    id: '',
+    name: '',
+    entries: 0,
+    joined: ''
+  }
+}
+
 class App extends Component {
   constructor() {
     super();
@@ -36,13 +51,13 @@ class App extends Component {
   }
 
   loadUser = (data) => {
-    this.setState({
+    this.setState({user: {
       email: data.email,
       id: data.id,
       name: data.name,
       entries: data.entries,
       joined: data.joined
-    })
+    }})
   }
 
   calculateFaceLocation = (data) => {
@@ -68,24 +83,23 @@ class App extends Component {
 
   onButtonSubmit = () => {
     this.setState({imageUrl: this.state.input});
-    console.log(this.state.imageUrl)
+    console.log(this.state.user.id)
     app.models.predict(Clarifai.FACE_DETECT_MODEL,
      this.state.input)
     .then(response => {
       if (response) {
         fetch('http://localhost:3000/image', {
           method: 'put',
-          header: {'Content-Type': 'application/json'},
+          headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
             id: this.state.user.id
           })
         })
           .then(response => response.json())
           .then(count => {
-            this.setState({users: {
-              entries: count
-            }})
+            this.setState(Object.assign(this.state.user, { entries: count }))
           })
+          .catch(console.log)
       }
       this.displayFaceBox(this.calculateFaceLocation(response))
     })
@@ -95,6 +109,8 @@ class App extends Component {
   onRouteChange = (route) => {
     if (route === 'signout') {
       this.setState({isSignedIn: false})
+      this.setState(initialState)
+      this.setState({route: 'signin'})
     } else if (route === 'home') {
       this.setState({isSignedIn: true})
     }
